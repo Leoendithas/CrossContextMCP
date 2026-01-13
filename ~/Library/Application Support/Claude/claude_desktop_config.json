@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "crosscontext-mcp": {
+      "command": "/Users/christinetsh/Desktop/Lance/VS_Code/CrossContextMCP/CrossContextMCP/crosscontext-mcp/venv/bin/python",
+      "args": [
+        "/Users/christinetsh/Desktop/Lance/VS_Code/CrossContextMCP/CrossContextMCP/crosscontext-mcp/src/server.py"
+      ]
+    }
+  }
+}
