@@ -11,6 +11,28 @@ from pathlib import Path
 from fastmcp import FastMCP
 from dotenv import load_dotenv
 
+# Import tools - handle both direct execution and module imports
+try:
+    # Try relative imports (when run as module)
+    from .tools.fetch_emails import fetch_emails
+    from .tools.fetch_calendar import fetch_calendar
+    from .tools.fetch_stakeholder import fetch_stakeholder
+    from .tools.fetch_documents import fetch_documents
+    from .tools.search_policies import search_policies
+except ImportError:
+    # Fall back to absolute imports (when run directly by Claude Desktop)
+    import sys
+    from pathlib import Path
+    # Add the src directory to Python path
+    src_dir = Path(__file__).parent
+    sys.path.insert(0, str(src_dir))
+
+    from tools.fetch_emails import fetch_emails
+    from tools.fetch_calendar import fetch_calendar
+    from tools.fetch_stakeholder import fetch_stakeholder
+    from tools.fetch_documents import fetch_documents
+    from tools.search_policies import search_policies
+
 # Load environment variables
 load_dotenv()
 
@@ -31,114 +53,77 @@ async def echo_tool(message: str) -> str:
     return f"Echo: {message}"
 
 @app.tool()
-async def fetch_emails(query: str = "", person: str = "", date_range: str = "last_7_days", max_results: int = 10):
+async def fetch_emails_tool(query: str = "", max_results: int = 10):
     """
-    Fetch relevant emails from officer's inbox with Singapore government classification and PII redaction.
+    Fetch emails matching the query with Singapore government classification and PII redaction.
 
     Args:
-        query: Search term or topic
-        person: Filter by sender/recipient name/email
-        date_range: Time range (last_7_days, last_30_days, today, etc.)
+        query: Search term or topic to filter emails
         max_results: Maximum number of emails to return
 
     Returns:
         Dict containing emails array with classification and redaction info
     """
-    # Placeholder implementation - will be replaced with real Gmail API integration
-    return {
-        "emails": [
-            {
-                "id": "placeholder_1",
-                "subject": f"Sample email about {query}",
-                "from": "officer@gov.sg",
-                "to": ["user@gov.sg"],
-                "date": "2024-01-15T10:30:00Z",
-                "snippet": "This is a sample email snippet with no PII.",
-                "classification": "OFFICIAL (CLOSED)",
-                "redacted": False
-            }
-        ],
-        "total_count": 1,
-        "audit_log_id": "audit_12345"
-    }
+    return fetch_emails(query=query, max_results=max_results)
 
 @app.tool()
-async def fetch_calendar(date_range: str = "today", meeting_title: str = "", attendee: str = "", include_past: bool = False):
+async def fetch_calendar_tool(date_range: str = "upcoming", meeting_title: str = "", max_results: int = 10):
     """
-    Fetch officer's calendar events with Singapore government classification and PII redaction.
+    Fetch calendar events with Singapore government classification and PII redaction.
 
     Args:
-        date_range: Time range (today, next_7_days, YYYY-MM-DD to YYYY-MM-DD)
-        meeting_title: Search for specific meeting by title
-        attendee: Filter by attendee name/email
-        include_past: Whether to include past events
+        date_range: Time range filter ("today", "upcoming", "this_week")
+        meeting_title: Search for specific meeting by title keywords
+        max_results: Maximum number of events to return
 
     Returns:
         Dict containing events array with classification and redaction info
     """
-    # Placeholder implementation - will be replaced with real Google Calendar API integration
-    return {
-        "events": [
-            {
-                "id": "placeholder_event_1",
-                "title": f"Meeting about {meeting_title}" if meeting_title else "Sample Meeting",
-                "start_time": "2024-01-15T14:00:00Z",
-                "end_time": "2024-01-15T15:00:00Z",
-                "attendees": [
-                    {
-                        "name": "John Tan",
-                        "email": "john.tan@gov.sg",
-                        "role": "organizer"
-                    }
-                ],
-                "location": "Conference Room A",
-                "description": "Meeting description with no sensitive information.",
-                "classification": "CONFIDENTIAL CLOUD-ELIGIBLE"
-            }
-        ],
-        "audit_log_id": "audit_67890"
-    }
+    return fetch_calendar(date_range=date_range, meeting_title=meeting_title, max_results=max_results)
 
 @app.tool()
-async def generate_briefing(context: str, briefing_type: str = "meeting_prep", emails_data: str = "[]", calendar_data: str = "[]", policy_data: str = "[]", stakeholder_data: str = "{}"):
+async def fetch_stakeholder_tool(name: str = "", email: str = ""):
     """
-    Synthesize briefing from pre-fetched data sources with Singapore government classification.
+    Fetch stakeholder context information with Singapore government classification and PII redaction.
 
     Args:
-        context: Meeting topic or decision context
-        briefing_type: Type of briefing ('meeting_prep' | 'decision_memo' | 'stakeholder_brief')
-        emails_data: JSON string of pre-fetched email data
-        calendar_data: JSON string of pre-fetched calendar data
-        policy_data: JSON string of pre-fetched policy data
-        stakeholder_data: JSON string of pre-fetched stakeholder data
+        name: Stakeholder name to search for
+        email: Stakeholder email to search for
 
     Returns:
-        Structured briefing with citations and highest classification level
+        Dict containing stakeholder information with classification and redaction info
     """
-    # Placeholder implementation - will be enhanced with LLM synthesis
-    return {
-        "briefing": {
-            "title": f"Briefing: {context}",
-            "summary": f"Executive summary for {briefing_type} on {context}",
-            "key_points": [
-                "Key point 1 from synthesized data",
-                "Key point 2 from stakeholder context",
-                "Key point 3 from policy review"
-            ],
-            "background": "Contextual information from multiple sources",
-            "stakeholder_analysis": "Analysis of involved parties",
-            "recommendations": "Suggested talking points and actions",
-            "citations": [
-                {
-                    "source_type": "email",
-                    "excerpt": "Relevant email excerpt",
-                    "classification": "OFFICIAL (CLOSED)"
-                }
-            ],
-            "highest_classification": "CONFIDENTIAL CLOUD-ELIGIBLE"
-        },
-        "audit_log_id": "audit_brief_12345"
-    }
+    return fetch_stakeholder(name=name, email=email)
+
+@app.tool()
+async def fetch_documents_tool(query: str = "", document_type: str = "", max_results: int = 5):
+    """
+    Fetch documents matching the query with Singapore government classification and PII redaction.
+
+    Args:
+        query: Search terms to find relevant documents
+        document_type: Filter by document type (policy, proposal, report, etc.)
+        max_results: Maximum number of documents to return
+
+    Returns:
+        Dict containing documents array with classification and redaction info
+    """
+    return fetch_documents(query=query, document_type=document_type, max_results=max_results)
+
+@app.tool()
+async def search_policies_tool(query: str = "", policy_type: str = "", max_results: int = 5):
+    """
+    Search government policies with Singapore classification and PII redaction.
+
+    Args:
+        query: Search terms to find relevant policies
+        policy_type: Filter by policy type (procurement, healthcare, security, hr, digital)
+        max_results: Maximum number of policies to return
+
+    Returns:
+        Dict containing policies array with classification and redaction info
+    """
+    return search_policies(query=query, policy_type=policy_type, max_results=max_results)
 
 if __name__ == "__main__":
     # Run the MCP server
