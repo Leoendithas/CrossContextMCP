@@ -94,11 +94,34 @@ python test_server.py
 
 ### Claude Desktop Integration
 
-1. **Configure MCP Server** (already done in `~/Library/Application Support/Claude/claude_desktop_config.json`)
+1. **Create MCP Configuration**:
+   ```bash
+   # Create the Claude Desktop config directory if it doesn't exist
+   mkdir -p ~/Library/Application\ Support/Claude/
 
-2. **Restart Claude Desktop** completely (Cmd+Q to quit, then reopen)
+   # Edit the configuration file
+   nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   ```
 
-3. **Verify Integration**:
+2. **Add the MCP Server Configuration**:
+   ```json
+   {
+     "mcpServers": {
+       "crosscontext-mcp": {
+         "command": "python3",
+         "args": ["/path/to/your/crosscontext-mcp/src/server.py"],
+         "env": {
+           "PYTHONPATH": "/path/to/your/crosscontext-mcp/src"
+         }
+       }
+     }
+   }
+   ```
+   **Replace `/path/to/your/crosscontext-mcp/` with the actual absolute path to your project directory.**
+
+3. **Restart Claude Desktop** completely (Cmd+Q to quit, then reopen)
+
+4. **Verify Integration**:
    ```
    User: What MCP tools do you have access to?
    Claude: I have access to the following MCP tools from the CrossContext MCP server:
