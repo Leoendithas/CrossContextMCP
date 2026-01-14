@@ -98,7 +98,14 @@ async def fetch_stakeholder_tool(name: str = "", email: str = ""):
 @app.tool()
 async def fetch_documents_tool(query: str = "", document_type: str = "", max_results: int = 5):
     """
-    Fetch documents matching the query with Singapore government classification and PII redaction.
+    Search government documents, reports, and guidelines. Use this tool when users need:
+    - Detailed policy documents and guidelines
+    - Procurement procedures and vendor requirements
+    - Budget analysis and financial reports
+    - Technical specifications and evaluation criteria
+    - Supporting documentation for policies
+
+    Use alongside search_policies_tool for comprehensive policy research.
 
     Args:
         query: Search terms to find relevant documents
@@ -113,10 +120,17 @@ async def fetch_documents_tool(query: str = "", document_type: str = "", max_res
 @app.tool()
 async def search_policies_tool(query: str = "", policy_type: str = "", max_results: int = 5):
     """
-    Search government policies with Singapore classification and PII redaction.
+    Search government policies, guidelines, and regulations. Use this tool when users ask about:
+    - Approval thresholds and limits (contracts, procurement, budgets)
+    - Government policies and procedures
+    - Regulatory requirements and compliance
+    - Official guidelines and frameworks
+    - Policy documents and directives
+
+    Always search policies for questions about vendor contracts, procurement rules, approval processes, compliance requirements, or government regulations.
 
     Args:
-        query: Search terms to find relevant policies
+        query: Search terms like "vendor contracts", "approval thresholds", "procurement policy", "budget limits"
         policy_type: Filter by policy type (procurement, healthcare, security, hr, digital)
         max_results: Maximum number of policies to return
 
