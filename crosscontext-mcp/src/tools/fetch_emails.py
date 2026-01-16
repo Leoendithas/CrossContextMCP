@@ -3,6 +3,7 @@ Email fetching tool for CrossContext MCP Server
 """
 
 from fastmcp import FastMCP
+from typing import Dict, Any
 
 # Handle imports for both direct execution and module imports
 try:
@@ -10,6 +11,7 @@ try:
     from ..trust_safety.classifier import classify_data
     from ..trust_safety.redactor import redact_pii
     from ..trust_safety.audit_logger import log_tool_invocation
+    from ..trust_safety.access_control import check_access_permission, log_access_decision
 except ImportError:
     # Fall back to absolute imports (when run directly by Claude Desktop)
     import sys
@@ -21,6 +23,7 @@ except ImportError:
     from trust_safety.classifier import classify_data
     from trust_safety.redactor import redact_pii
     from trust_safety.audit_logger import log_tool_invocation
+    from trust_safety.access_control import check_access_permission, log_access_decision
 
 # Mock email data with Singapore government context
 MOCK_EMAILS = [
@@ -66,16 +69,17 @@ MOCK_EMAILS = [
     }
 ]
 
-def fetch_emails(query: str = "", max_results: int = 10):
+def fetch_emails(query: str = "", max_results: int = 10, user_clearance: str = "officer"):
     """
     Fetch emails matching the query with Singapore government classification and PII redaction.
 
     Args:
         query: Search term or topic to filter emails
         max_results: Maximum number of emails to return
+        user_clearance: User's security clearance level ("officer", "senior_officer", "director", "admin")
 
     Returns:
-        Dict containing emails array with classification and redaction info
+        Dict containing emails array with classification and redaction info, or access denied message
     """
     # Flexible search implementation - match ANY term (OR logic)
     if not query:
@@ -97,20 +101,47 @@ def fetch_emails(query: str = "", max_results: int = 10):
 
     # Apply trust/safety processing
     processed_emails = []
+    access_denied_emails = []
+
     for email in results:
         # Classify the email
         classified = classify_data(email.copy())
-        # Redact PII with general context (not meeting participants)
-        redacted = redact_pii(classified, context="general")
-        processed_emails.append(redacted)
+
+        # Check user access permission for this email's classification
+        access_check = check_access_permission(user_clearance, classified["classification"])
+
+        if access_check["access_granted"]:
+            # User has access - redact PII and include email
+            redacted = redact_pii(classified, context="general")
+            processed_emails.append(redacted)
+        else:
+            # User doesn't have access - record denial and exclude email
+            access_denied_emails.append({
+                "id": email["id"],
+                "classification": classified["classification"],
+                "access_denied_reason": access_check["reason"]
+            })
+
+            # Log the access denial
+            log_access_decision("officer_001", f"fetch_email_{email['id']}", access_check)
 
     # Prepare response
     response = {
         "emails": processed_emails,
-        "total_count": len(processed_emails)
+        "total_count": len(processed_emails),
+        "access_denials": access_denied_emails,
+        "user_clearance": user_clearance
     }
 
+    # Add summary if there were access denials
+    if access_denied_emails:
+        response["access_summary"] = f"Access granted to {len(processed_emails)} emails, denied to {len(access_denied_emails)} emails due to insufficient clearance level"
+
     # Audit log the access (server-side only, not returned to user)
-    log_tool_invocation("fetch_emails", {"query": query, "max_results": max_results}, response)
+    log_tool_invocation("fetch_emails", {
+        "query": query,
+        "max_results": max_results,
+        "user_clearance": user_clearance
+    }, response)
 
     return response

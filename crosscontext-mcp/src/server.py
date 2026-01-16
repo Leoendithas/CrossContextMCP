@@ -53,18 +53,25 @@ async def echo_tool(message: str) -> str:
     return f"Echo: {message}"
 
 @app.tool()
-async def fetch_emails_tool(query: str = "", max_results: int = 10):
+async def fetch_emails_tool(query: str = "", max_results: int = 10, user_clearance: str = "officer"):
     """
     Fetch emails matching the query with Singapore government classification and PII redaction.
+
+    Access control is enforced based on user's clearance level:
+    - officer: OFFICIAL (OPEN/CLOSED) only
+    - senior_officer: Adds RESTRICTED access
+    - director: Adds CONFIDENTIAL access
+    - admin: Full access
 
     Args:
         query: Search term or topic to filter emails
         max_results: Maximum number of emails to return
+        user_clearance: User's security clearance level
 
     Returns:
-        Dict containing emails array with classification and redaction info
+        Dict containing accessible emails with classification info, and access denial details
     """
-    return fetch_emails(query=query, max_results=max_results)
+    return fetch_emails(query=query, max_results=max_results, user_clearance=user_clearance)
 
 @app.tool()
 async def fetch_calendar_tool(date_range: str = "upcoming", meeting_title: str = "", max_results: int = 10):
