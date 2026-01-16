@@ -110,7 +110,7 @@ An MCP server that acts as a unified context layer, enabling AI Assistants to:
 - **Workflow Coordinator:** Manages multi-tool agentic sequences
 - **Context Aggregator:** Merges results from multiple tools into coherent responses
 
-#### D. MCP Tools (Detailed Below)
+#### D. MCP Tools (11 Total: 6 Core + 5 Consent Management)
 
 ---
 
@@ -467,37 +467,109 @@ def redact_pii(text: str) -> tuple[str, bool]:
 
 ### 4.3 Access Control
 
-**Access Control Model:**
+**Singapore Government Clearance Levels:**
 ```python
-ACCESS_CONTROL = {
-    "user_roles": {
-        "admin": ["ALL"],
-        "manager": ["PUBLIC", "CONFIDENTIAL"],
-        "officer": ["PUBLIC"]
-    },
-    "resource_permissions": {
-        "emails": {"min_role": "officer"},
-        "documents": {"min_role": "officer"},
-        "stakeholder_context": {"min_role": "manager"},
-        "policy_search": {"min_role": "officer"}
-    }
+USER_CLEARANCE_LEVELS = {
+    "officer": ["OFFICIAL (OPEN)", "OFFICIAL (CLOSED)"],  # Basic government officer
+    "senior_officer": ["OFFICIAL (OPEN)", "OFFICIAL (CLOSED)", "RESTRICTED"],  # Senior roles
+    "director": ["OFFICIAL (OPEN)", "OFFICIAL (CLOSED)", "RESTRICTED", "CONFIDENTIAL CLOUD-ELIGIBLE"],  # Full access
+    "admin": ["ALL"]  # System administrators
 }
+```
 
-def check_access(user_role: str, resource_classification: str, tool_name: str) -> bool:
+**Classification Hierarchy:**
+```python
+CLASSIFICATION_HIERARCHY = {
+    "OFFICIAL (OPEN)": 1,          # Lowest - public information
+    "OFFICIAL (CLOSED)": 2,        # Internal communications
+    "RESTRICTED": 3,               # Personal/disciplinary data
+    "CONFIDENTIAL CLOUD-ELIGIBLE": 4  # Highest - sensitive financial/procurement
+}
+```
+
+**Access Control Implementation:**
+```python
+def check_access_permission(user_clearance: str, data_classification: str) -> Dict[str, any]:
     """
-    Check if user has access to resource
+    Check if user has permission to access data of given classification.
+
+    Returns detailed access decision with audit information.
     """
-    # Check tool-level access
-    required_role = ACCESS_CONTROL["resource_permissions"].get(tool_name, {}).get("min_role")
-    if required_role and user_role not in get_roles_hierarchy(required_role):
-        return False
-    
-    # Check classification-level access
-    allowed_classifications = ACCESS_CONTROL["user_roles"].get(user_role, [])
-    if "ALL" in allowed_classifications or resource_classification in allowed_classifications:
-        return True
-    
-    return False
+    allowed_classifications = USER_CLEARANCE_LEVELS[user_clearance]
+
+    # Admin has access to everything
+    if "ALL" in allowed_classifications:
+        return {
+            "access_granted": True,
+            "reason": "Administrative access granted"
+        }
+
+    # Check if data classification is allowed for this user level
+    if data_classification in allowed_classifications:
+        return {
+            "access_granted": True,
+            "reason": f"Access granted for {user_clearance} level user"
+        }
+
+    # Find minimum clearance level required
+    data_level = CLASSIFICATION_HIERARCHY.get(data_classification, 0)
+    required_level = None
+    for clearance_level, allowed in USER_CLEARANCE_LEVELS.items():
+        if "ALL" in allowed or data_classification in allowed:
+            required_level = clearance_level
+            break
+
+    return {
+        "access_granted": False,
+        "reason": f"Insufficient clearance. {data_classification} requires {required_level} level access",
+        "required_clearance": required_level
+    }
+```
+
+### 4.4 Progressive Disclosure & User Consent
+
+**Consent Request Generation:**
+```python
+def generate_consent_request(operation: str, classifications: List[str], tools: List[str]) -> Dict[str, any]:
+    """
+    Generate a user consent request for sensitive operations.
+    """
+    max_classification = get_max_classification(classifications)
+
+    # Determine if consent is required based on classification
+    requires_consent = CLASSIFICATION_HIERARCHY.get(max_classification, 0) >= CLASSIFICATION_HIERARCHY.get("RESTRICTED", 3)
+
+    return {
+        "operation": operation,
+        "tools_involved": tools,
+        "classifications": list(set(classifications)),
+        "highest_classification": max_classification,
+        "requires_consent": requires_consent,
+        "consent_reason": get_consent_reason(max_classification),
+        "consent_id": generate_unique_id()
+    }
+```
+
+**Consent Workflow States:**
+```python
+CONSENT_STATES = {
+    "pending": "Awaiting user decision",
+    "granted": "User approved access",
+    "denied": "User denied access",
+    "expired": "Consent request timed out"
+}
+```
+
+**Implementation in Tools:**
+```python
+# All sensitive tools now include user_clearance parameter
+@app.tool()
+async def fetch_emails_tool(query: str = "", max_results: int = 10, user_clearance: str = "officer"):
+    """
+    Enhanced with access control - checks user clearance against data classification
+    before returning results. Access denials are logged and reported.
+    """
+    # Implementation includes access checking and denial reporting
 ```
 
 ### 4.4 Audit Logging

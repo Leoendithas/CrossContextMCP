@@ -11,14 +11,16 @@ A comprehensive Model Context Protocol (MCP) server providing AI assistants with
 ## 🚀 Key Features
 
 ### Core Functionality
-- **6 MCP Tools**: Complete tool suite for government context management
+- **11 MCP Tools**: Complete tool suite for government context management (6 core + 5 consent)
 - **Flexible Search**: OR logic supporting complex multi-term queries
 - **Embedded Mock Data**: Realistic Singapore government scenarios for testing
 - **Claude Desktop Integration**: Seamless AI assistant integration
 
 ### Security & Compliance
 - **Singapore Government Classification System**: 4-level security framework
+- **Access Control**: Role-based permissions (officer/senior_officer/director/admin)
 - **Advanced PII Redaction**: Context-aware redaction of NRIC, phones, emails
+- **Progressive Disclosure UX**: User consent for sensitive operations
 - **Comprehensive Audit Logging**: Complete data access trails with Singapore timezone
 - **Trust & Explainability**: Transparent classification reasons and redaction metadata
 
@@ -53,17 +55,20 @@ A comprehensive Model Context Protocol (MCP) server providing AI assistants with
 src/trust_safety/
 ├── classifier.py          # Singapore government classification engine
 ├── redactor.py            # Context-aware PII redaction
-└── audit_logger.py        # Complete audit trails with SGT timestamps
+├── access_control.py      # Role-based access control (officer/senior_officer/director/admin)
+├── audit_logger.py        # Complete audit trails with SGT timestamps
+└── __init__.py
 ```
 
 ### Tool Suite
 ```
 src/tools/
-├── fetch_emails.py        # Email search with classification & redaction
+├── fetch_emails.py        # Email search with classification & access control
 ├── fetch_calendar.py      # Calendar events with smart participant handling
 ├── fetch_stakeholder.py   # Stakeholder context with privacy controls
 ├── fetch_documents.py     # Document search and retrieval
 ├── search_policies.py     # Government policy queries
+├── consent_manager.py     # User consent workflow for sensitive operations
 └── __init__.py
 ```
 
