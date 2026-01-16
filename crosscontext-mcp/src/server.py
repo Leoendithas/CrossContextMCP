@@ -32,6 +32,7 @@ except ImportError:
     from tools.fetch_stakeholder import fetch_stakeholder
     from tools.fetch_documents import fetch_documents
     from tools.search_policies import search_policies
+    from tools.consent_manager import request_user_consent, check_consent_status, grant_consent, deny_consent, get_pending_consents
 
 # Load environment variables
 load_dotenv()
@@ -145,6 +146,85 @@ async def search_policies_tool(query: str = "", policy_type: str = "", max_resul
         Dict containing policies array with classification and redaction info
     """
     return search_policies(query=query, policy_type=policy_type, max_results=max_results)
+
+@app.tool()
+async def request_consent_tool(operation_description: str, tools_involved: str, classifications: str, estimated_data_count: int = 1):
+    """
+    Request user consent for sensitive operations involving classified data.
+
+    Use this tool when operations will access RESTRICTED or CONFIDENTIAL data to ensure
+    user awareness and consent before proceeding with data access.
+
+    Args:
+        operation_description: Clear description of what the operation will do
+        tools_involved: Comma-separated list of tools to be used (e.g., "fetch_emails,search_policies")
+        classifications: Comma-separated list of classifications involved (e.g., "CONFIDENTIAL,RESTRICTED")
+        estimated_data_count: Estimated number of data items to be accessed
+
+    Returns:
+        Consent request details with unique ID for status checking
+    """
+    tools_list = [tool.strip() for tool in tools_involved.split(",")]
+    classifications_list = [cls.strip() for cls in classifications.split(",")]
+
+    consent_request = request_user_consent(
+        operation_description=operation_description,
+        tools_involved=tools_list,
+        classifications=classifications_list,
+        estimated_data_count=estimated_data_count
+    )
+
+    return consent_request
+
+@app.tool()
+async def check_consent_tool(consent_id: str):
+    """
+    Check the status of a consent request.
+
+    Args:
+        consent_id: The consent request ID to check
+
+    Returns:
+        Current status of the consent request
+    """
+    return check_consent_status(consent_id)
+
+@app.tool()
+async def grant_consent_tool(consent_id: str):
+    """
+    Grant consent for a pending consent request.
+
+    Args:
+        consent_id: The consent request ID to grant
+
+    Returns:
+        Confirmation of consent grant
+    """
+    return grant_consent(consent_id)
+
+@app.tool()
+async def deny_consent_tool(consent_id: str, reason: str = ""):
+    """
+    Deny consent for a pending consent request.
+
+    Args:
+        consent_id: The consent request ID to deny
+        reason: Optional reason for denying consent
+
+    Returns:
+        Confirmation of consent denial
+    """
+    return deny_consent(consent_id, reason)
+
+@app.tool()
+async def list_pending_consents_tool():
+    """
+    List all pending consent requests for the current user.
+
+    Returns:
+        List of pending consent requests requiring user action
+    """
+    return {"pending_consents": get_pending_consents()}
 
 if __name__ == "__main__":
     # Run the MCP server
