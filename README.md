@@ -79,7 +79,7 @@ src/tools/
 ```bash
 # Clone repository
 git clone https://github.com/Leoendithas/CrossContextMCP.git
-cd CrossContextMCP
+cd CrossContextMCP/crosscontext-mcp
 
 # Create virtual environment
 python3 -m venv venv
@@ -215,6 +215,7 @@ Claude: [Uses fetch_stakeholder_tool]
 
 ### Direct Tool Testing
 ```bash
+cd crosscontext-mcp
 source venv/bin/activate
 
 # Test individual tools
